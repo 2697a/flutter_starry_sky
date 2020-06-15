@@ -1,4 +1,4 @@
-package com.sixbugs.flutterstarrysky;
+package com.sixbugs.flutterstarrysky.starry;
 
 
 import com.google.gson.Gson;

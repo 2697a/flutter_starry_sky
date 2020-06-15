@@ -5,7 +5,6 @@ import android.os.PersistableBundle;
 
 import androidx.annotation.Nullable;
 
-import com.lzx.starrysky.StarrySky;
 
 import java.util.Objects;
 

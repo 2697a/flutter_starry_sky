@@ -1,13 +1,25 @@
 package com.sixbugs.flutterstarrysky;
 
 
+import android.app.Application;
+import android.content.Context;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
-import com.lzx.starrysky.StarrySky;
-import com.lzx.starrysky.control.OnPlayerEventListener;
-import com.lzx.starrysky.provider.SongInfo;
+import com.sixbugs.flutterstarrysky.starry.GsonUtil;
+import com.sixbugs.flutterstarrysky.starry.StarrySky;
+import com.sixbugs.flutterstarrysky.starry.StarrySkyConfig;
+import com.sixbugs.flutterstarrysky.starry.control.OnPlayerEventListener;
+import com.sixbugs.flutterstarrysky.starry.intercept.InterceptorCallback;
+import com.sixbugs.flutterstarrysky.starry.intercept.StarrySkyInterceptor;
+import com.sixbugs.flutterstarrysky.starry.notification.NotificationConfig;
+import com.sixbugs.flutterstarrysky.starry.provider.SongInfo;
+import com.sixbugs.flutterstarrysky.starry.utils.MainLooper;
+import com.sixbugs.flutterstarrysky.starry.utils.SpUtil;
+
+import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 
@@ -29,6 +41,7 @@ public class FlutterStarrySkyPlugin implements FlutterPlugin, MethodCallHandler,
 
     @Override
     public void onAttachedToEngine(@NonNull FlutterPluginBinding flutterPluginBinding) {
+        initStarrySky(flutterPluginBinding.getApplicationContext());
         channel = new MethodChannel(flutterPluginBinding.getBinaryMessenger(), "flutter_starry_sky");
         channel.setMethodCallHandler(this);
     }
@@ -134,10 +147,6 @@ public class FlutterStarrySkyPlugin implements FlutterPlugin, MethodCallHandler,
         StarrySky.Companion.with().addPlayerEventListener(onPlayerEventListener);
     }
 
-    //播放进度监听
-//    private void getPlayPosition() {
-//
-//    }
 
     @Override
     public void onDetachedFromEngine(@NonNull FlutterPluginBinding binding) {
@@ -169,5 +178,75 @@ public class FlutterStarrySkyPlugin implements FlutterPlugin, MethodCallHandler,
         StarrySky.Companion.with().stopMusic();
         StarrySky.Companion.release();
         System.exit(0);
+    }
+
+
+    private void initStarrySky(Context context){
+        NotificationConfig notificationConfig =
+                new NotificationConfig();
+        notificationConfig.setTargetClass("com.sixbugs.flutterstarrysky_example.MainActivity");
+
+        StarrySkyConfig config = new StarrySkyConfig().newBuilder()
+                .addInterceptor(new PermissionInterceptor())
+                .addInterceptor(new RequestSongInfoInterceptor())
+                .isOpenNotification(true)
+                .setNotificationConfig(notificationConfig)
+                .build();
+        StarrySky.Companion.init((Application) context, config);
+    }
+    private static class PermissionInterceptor implements StarrySkyInterceptor {
+
+        @Override
+        public void process(@Nullable SongInfo songInfo, @NotNull MainLooper mainLooper,
+                            @NotNull InterceptorCallback callback) {
+            if (songInfo == null) {
+                callback.onInterrupt(new RuntimeException("SongInfo is null"));
+                return;
+            }
+            boolean hasPermission = SpUtil.Companion.getInstance().getBoolean("HAS_PERMISSION", true);
+            if (hasPermission) {
+                callback.onContinue(songInfo);
+                return;
+            }
+//        SoulPermission.getInstance()
+//                .checkAndRequestPermissions(Permissions.build(Manifest.permission.READ_EXTERNAL_STORAGE,
+//                        Manifest.permission.WRITE_EXTERNAL_STORAGE),
+//                        new CheckRequestPermissionsListener() {
+//                            @Override
+//                            public void onAllPermissionOk(Permission[] allPermissions) {
+//                                SpUtil.Companion.getInstance().putBoolean("HAS_PERMISSION", true);
+//                                callback.onContinue(songInfo);
+//                            }
+//
+//                            @Override
+//                            public void onPermissionDenied(Permission[] refusedPermissions) {
+//                                SpUtil.Companion.getInstance().putBoolean("HAS_PERMISSION", false);
+//                                callback.onInterrupt(new RuntimeException("没有权限，播放失败"));
+//                            }
+//                        });
+        }
+    }
+
+    private static class RequestSongInfoInterceptor implements StarrySkyInterceptor {
+
+//    private MusicRequest mMusicRequest = new MusicRequest();
+
+        @Override
+        public void process(@Nullable SongInfo songInfo, @NotNull MainLooper mainLooper,
+                            @NotNull InterceptorCallback callback) {
+            if (songInfo == null) {
+                callback.onInterrupt(new RuntimeException("SongInfo is null"));
+                return;
+            }
+            callback.onContinue(songInfo);
+//        if (TextUtils.isEmpty(songInfo.getSongUrl())) {
+//            mMusicRequest.getSongUrl(songInfo.getSongId(), songUrl -> {
+//                songInfo.setSongUrl(songUrl);
+//                callback.onContinue(songInfo);
+//            });
+//        } else {
+//            callback.onContinue(songInfo);
+//        }
+        }
     }
 }

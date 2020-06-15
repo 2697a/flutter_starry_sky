@@ -1,6 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    package="com.sixbugs.flutterstarrysky_example">
+    package="com.sixbugs.flutterstarrysky.starry_example">
     <!-- io.flutter.app.FlutterApplication is an android.app.Application that
          calls FlutterMain.startInitialization(this); in its onCreate method.
          In most cases you can leave this as-is, but you if you want to provide
@@ -10,11 +10,10 @@
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
     <application
-        android:name=".App"
         android:label="flutterstarrysky_example"
         android:icon="@mipmap/ic_launcher">
         <activity
-            android:name=".MainActivity"
+            android:name="com.sixbugs.flutterstarrysky_example.MainActivity"
             android:launchMode="singleTop"
             android:theme="@style/LaunchTheme"
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
@@ -48,7 +47,7 @@
             android:name="flutterEmbedding"
             android:value="2" />
         <service
-            android:name="com.lzx.starrysky.MusicService"
+            android:name="com.sixbugs.flutterstarrysky.starry.MusicService"
             android:enabled="true"
             android:exported="false"
             tools:ignore="ExportedService">
