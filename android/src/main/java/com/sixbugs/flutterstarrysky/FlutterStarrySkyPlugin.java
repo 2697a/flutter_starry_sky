@@ -3,6 +3,7 @@ package com.sixbugs.flutterstarrysky;
 
 import android.app.Application;
 import android.content.Context;
+import android.text.TextUtils;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
@@ -38,10 +39,11 @@ public class FlutterStarrySkyPlugin implements FlutterPlugin, MethodCallHandler,
     private static final String TAG = "FlutterStarrySkyPlugin";
     private MethodChannel channel;
     private OnPlayerEventListener onPlayerEventListener;
+    private Context context;
 
     @Override
     public void onAttachedToEngine(@NonNull FlutterPluginBinding flutterPluginBinding) {
-        initStarrySky(flutterPluginBinding.getApplicationContext());
+        context = flutterPluginBinding.getApplicationContext();
         channel = new MethodChannel(flutterPluginBinding.getBinaryMessenger(), "flutter_starry_sky");
         channel.setMethodCallHandler(this);
     }
@@ -55,6 +57,8 @@ public class FlutterStarrySkyPlugin implements FlutterPlugin, MethodCallHandler,
     public void onMethodCall(@NonNull MethodCall call, @NonNull Result result) {
         switch (call.method) {
             case "init":
+                String className = call.argument("className");
+                initStarrySky(context, className);
                 Log.d(TAG, "onMethodCall: ========我将初始化OnPlayerEventListener");
                 addPlayerEventListener();
                 result.success("初始化完毕");
@@ -180,20 +184,20 @@ public class FlutterStarrySkyPlugin implements FlutterPlugin, MethodCallHandler,
         System.exit(0);
     }
 
-
-    private void initStarrySky(Context context){
+    //初始化音乐插件
+    private void initStarrySky(Context context, String className) {
         NotificationConfig notificationConfig =
                 new NotificationConfig();
-        notificationConfig.setTargetClass("com.sixbugs.flutterstarrysky_example.MainActivity");
-
+        notificationConfig.setTargetClass(className);
         StarrySkyConfig config = new StarrySkyConfig().newBuilder()
                 .addInterceptor(new PermissionInterceptor())
-                .addInterceptor(new RequestSongInfoInterceptor())
+                .addInterceptor(new RequestSongInfoInterceptor(channel))
                 .isOpenNotification(true)
                 .setNotificationConfig(notificationConfig)
                 .build();
         StarrySky.Companion.init((Application) context, config);
     }
+
     private static class PermissionInterceptor implements StarrySkyInterceptor {
 
         @Override
@@ -228,9 +232,11 @@ public class FlutterStarrySkyPlugin implements FlutterPlugin, MethodCallHandler,
     }
 
     private static class RequestSongInfoInterceptor implements StarrySkyInterceptor {
+        MethodChannel channel;
 
-//    private MusicRequest mMusicRequest = new MusicRequest();
-
+        public RequestSongInfoInterceptor(MethodChannel channel) {
+            this.channel = channel;
+        }
         @Override
         public void process(@Nullable SongInfo songInfo, @NotNull MainLooper mainLooper,
                             @NotNull InterceptorCallback callback) {
@@ -239,14 +245,33 @@ public class FlutterStarrySkyPlugin implements FlutterPlugin, MethodCallHandler,
                 return;
             }
             callback.onContinue(songInfo);
-//        if (TextUtils.isEmpty(songInfo.getSongUrl())) {
-//            mMusicRequest.getSongUrl(songInfo.getSongId(), songUrl -> {
-//                songInfo.setSongUrl(songUrl);
-//                callback.onContinue(songInfo);
-//            });
-//        } else {
-//            callback.onContinue(songInfo);
-//        }
+            if (TextUtils.isEmpty(songInfo.getSongUrl())) {
+                mainLooper.runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        channel.invokeMethod("getUrl", songInfo.getSongId(), new Result() {
+                            @Override
+                            public void success(@Nullable Object result) {
+                                assert result != null;
+                                songInfo.setSongUrl((String) result);
+                                callback.onContinue(songInfo);
+                            }
+
+                            @Override
+                            public void error(String errorCode, @Nullable String errorMessage, @Nullable Object errorDetails) {
+
+                            }
+
+                            @Override
+                            public void notImplemented() {
+
+                            }
+                        });
+                    }
+                });
+            } else {
+                callback.onContinue(songInfo);
+            }
         }
     }
 }
